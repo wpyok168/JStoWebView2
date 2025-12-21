@@ -46,7 +46,7 @@
     
     mimetype: application/x-microsoft.net.object.binary.base64
     value   : The object must be serialized with 
-            : System.Serialization.Formatters.Binary.BinaryFormatter
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
             : and then encoded with base64 encoding.
     
     mimetype: application/x-microsoft.net.object.soap.base64
@@ -60,6 +60,7 @@
             : and then encoded with base64 encoding.
     -->
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
     <xsd:element name="root" msdata:IsDataSet="true">
       <xsd:complexType>
         <xsd:choice maxOccurs="unbounded">
@@ -68,9 +69,10 @@
               <xsd:sequence>
                 <xsd:element name="value" type="xsd:string" minOccurs="0" />
               </xsd:sequence>
-              <xsd:attribute name="name" type="xsd:string" />
+              <xsd:attribute name="name" use="required" type="xsd:string" />
               <xsd:attribute name="type" type="xsd:string" />
               <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
             </xsd:complexType>
           </xsd:element>
           <xsd:element name="assembly">
@@ -85,9 +87,10 @@
                 <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
                 <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
               </xsd:sequence>
-              <xsd:attribute name="name" type="xsd:string" msdata:Ordinal="1" />
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
               <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
               <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
             </xsd:complexType>
           </xsd:element>
           <xsd:element name="resheader">
@@ -109,9 +112,47 @@
     <value>2.0</value>
   </resheader>
   <resheader name="reader">
-    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <resheader name="writer">
-    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="GetToken" xml:space="preserve">
+    <value>// ===================== Fetch 拦截 =====================
+const originalFetch = window.fetch || unsafeWindow.fetch;
+//window.fetch= 有时不启作用，使用unsafeWindow.fetch=
+Window.fetch = function (input, init) {
+    const url = typeof input === "string" ? input : input.url;
+    console.log("🚀 🚀 🚀 [Fetch] 请求:", url);
+    // 拦截指定 token URL   url.includes("https://login.microsoftonline.com/common/oauth2/v2.0/token"   //if (/oauth|token/.test(url))
+    if (url.includes("/token")) {
+        console.log("🚀 拦截 Fetch 请求:", url);
+
+        return originalFetch(input, init).then(response =&gt; {
+            console.log("📦 响应状态:", response.status);
+
+            //return respCloneForJson.json()
+            response.clone().json().then(data =&gt; {
+                console.log("📄 响应数据:", data);
+                if (data.token_type &amp;&amp; data.access_token) {
+                    console.log("🚀 🚀 🚀[Fetch] Authorization:", `${data.token_type} ${data.access_token}`);
+                    GM_setClipboard(data.refresh_token);
+                    //window.localStorage.setItem("token", JSON.stringify(data));
+                    //debugger
+                }
+            }).catch(err =&gt; console.warn("[Fetch] JSON 非法", err));
+
+            response.clone().text().then(text =&gt; {
+                localStorage.setItem("token", text);
+                console.log("📄 token 原始响应文本已存储");
+            }).catch(err =&gt; console.warn("[Fetch] text 读取失败", err));
+
+            return response; // 返回原始响应，保持 fetch 行为不变
+        });
+    }
+
+    // 对其他请求不拦截，直接执行
+    return originalFetch(input, init);
+};</value>
+  </data>
 </root>
