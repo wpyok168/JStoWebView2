@@ -76,7 +76,7 @@ namespace JStoWebView2
 
         }
 
-        private void CoreWebView2_WebResourceRequested(object sender, CoreWebView2WebResourceRequestedEventArgs e)
+        private async void CoreWebView2_WebResourceRequested(object sender, CoreWebView2WebResourceRequestedEventArgs e)
         {
             string requestUrl = e.Request.Uri;
             Console.WriteLine("监控到的每一个请求：" + requestUrl); //https://login.microsoftonline.com/common/oauth2/v2.0/token
@@ -101,6 +101,25 @@ namespace JStoWebView2
                     flag = false;
                 }
             }
+            if (requestUrl.Contains("https://login.microsoftonline.com"))
+            {
+                try
+                {
+                    //var heads1 = e.Request.Headers.GetHeaders("cookie");
+                    //var heads2 = e.Request.Headers.GetHeader("cookie");
+                    List<CoreWebView2Cookie> cw2c = await this.wv.CoreWebView2.CookieManager.GetCookiesAsync("https://login.microsoftonline.com/");
+                    if (cw2c != null)
+                    {
+                        string cookiestr1 = string.Join(";", cw2c.Select(c => $"{c.Name}={c.Value}"));
+                        Console.WriteLine($"WebResourceRequested：{cookiestr1}");
+                    }
+                }
+                catch (Exception ex)
+                {
+
+                }
+                
+            }
         }
         private bool flag = false;
         private bool flag1 = false;
@@ -108,13 +127,14 @@ namespace JStoWebView2
         private async void Wv_NavigationStarting(object sender, CoreWebView2NavigationStartingEventArgs e)
         {
             Console.WriteLine("NavigationStarting:   " + e.Uri.ToString());
-            if (e.Uri.ToString().Equals("https://login.microsoftonline.com/common/GetCredentialType?"))
+            if (e.Uri.ToString().Equals("https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id="))
             {
                 //await this.wv.ExecuteScriptAsync(Resources.GetToken);
                 List<CoreWebView2Cookie> cw2c = await this.wv.CoreWebView2.CookieManager.GetCookiesAsync("https://login.microsoftonline.com/");
                 if (cw2c != null)
                 {
                     string cookiestr1 = string.Join(";", cw2c.Select(c => $"{c.Name}={c.Value}"));
+                    Console.WriteLine($"NavigationStarting：{cookiestr1}");
                 }
             }
             else if (e.Uri.ToString().Contains("token"))
@@ -148,13 +168,14 @@ namespace JStoWebView2
         string cookiestr1 = string.Empty;
         private async void CoreWebView2_WebResourceResponseReceived(object sender, CoreWebView2WebResourceResponseReceivedEventArgs e)
         {
+            //https://login.microsoftonline.com/common/oauth2/v2.0/authorize
             if (e.Request.Uri.Contains("https://login.microsoftonline.com/"))//https://login.microsoftonline.com/common/GetCredentialType?mkt=zh-CN  https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
             {
                 List<CoreWebView2Cookie> cw2c = await this.wv.CoreWebView2.CookieManager.GetCookiesAsync("https://login.microsoftonline.com/");
                 if (cw2c != null)
                 {
                     cookiestr1 = string.Join(";", cw2c.Select(c => $"{c.Name}={c.Value}"));
-                    Console.WriteLine(cookiestr1);
+                    Console.WriteLine($"WebResourceResponseReceived：{cookiestr1}");
                 }
             }
             if (e.Request.Uri.ToString().Contains("/token"))
@@ -186,13 +207,14 @@ namespace JStoWebView2
             List<CoreWebView2Cookie> cookiestr = await this.wv.CoreWebView2.CookieManager.GetCookiesAsync("https://visualsupport.microsoft.com");
             Console.WriteLine(this.wv.CoreWebView2.Source);
             string url = this.wv.CoreWebView2.Source;
-            if (url.Contains("https://login.microsoftonline.com/common/GetCredentialType?"))//https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
+            if (url.Contains("https://login.microsoftonline.com/"))//https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
             {
                 List<CoreWebView2Cookie> cw2c = await this.wv.CoreWebView2.CookieManager.GetCookiesAsync("https://login.microsoftonline.com/");
                 if (cw2c != null)
                 {
                     string cookiestr1 = string.Join(";", cw2c.Select(c => $"{c.Name}={c.Value}"));
                 }
+                Console.WriteLine($"NavigationCompleted：{cookiestr1}");
             }
 
         }
